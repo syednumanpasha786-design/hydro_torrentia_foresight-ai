@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hydro Torrentia Foresight AI (HTF) — Dam Break Inundation Intelligence</title>
+<meta name="description" content="HTF — Fast, scenario-based dam-break inundation intelligence, arrival-time prediction, impact analysis, risk tiering and evacuation routing." />
+
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- Google Font: EB Garamond (Garamond style) for light theme -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+<!-- HTF Logo (AI generated, minimal mark, no text) -->
+<link rel="icon" type="image/png" href="https://media.base44.com/images/public/6ab96399ebe59991e645eb2f/52e35e9a8_generated_image.png" />
+
+<style>
+  :root{
+    /* LIGHT THEME — cream + purple + Garamond */
+    --bg: #FBF6E6;
+    --bg-2: #F6EFD8;
+    --card: #FFFDF5;
+    --card-2: #FCF7E8;
+    --text: #2E2148;
+    --text-soft: #5A4A78;
+    --muted: #8A7BA8;
+    --accent: #6D4AAF;
+    --accent-2: #8A6BC8;
+    --accent-soft: #E9DDF7;
+    --border: #E4D9C0;
+    --flood: #5B3FA1;
+    --flood-fill: rgba(91,63,161,0.22);
+    --safe: #4F8A6B;
+    --risk-crit: #9B2C5A;
+    --risk-imp: #B8841A;
+    --risk-low: #5A7A52;
+    --font: 'EB Garamond', Garamond, Georgia, 'Times New Roman', serif;
+    --font-head: 'EB Garamond', Garamond, Georgia, serif;
+  }
+  [data-theme="dark"]{
+    /* DARK THEME — dark bg + pista green + Arial */
+    --bg: #0C1410;
+    --bg-2: #0F1A14;
+    --card: #131E17;
+    --card-2: #172620;
+    --text: #CDEBCE;
+    --text-soft: #9FD6B0;
+    --muted: #6FAA86;
+    --accent: #8FE0A8;
+    --accent-2: #6FCF8F;
+    --accent-soft: #1C3326;
+    --border: #243029;
+    --flood: #4FB37A;
+    --flood-fill: rgba(79,179,122,0.22);
+    --safe: #B8E6C0;
+    --risk-crit: #F26B6B;
+    --risk-imp: #F5C26B;
+    --risk-low: #8FE0A8;
+    --font: Arial, Helvetica, sans-serif;
+    --font-head: Arial, Helvetica, sans-serif;
+  }
+
+  html,body{ background:var(--bg); color:var(--text); font-family:var(--font); }
+  body{ transition: background .4s ease, color .4s ease; }
+  h1,h2,h3,h4,h5,.font-head{ font-family:var(--font-head); }
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; }
+  .card-2{ background:var(--card-2); border:1px solid var(--border); border-radius:14px; }
+  .text-soft{ color:var(--text-soft); }
+  .text-muted{ color:var(--muted); }
+  .text-accent{ color:var(--accent); }
+  .bg-accent{ background:var(--accent); }
+  .bg-accent-soft{ background:var(--accent-soft); }
+  .border-accent{ border-color:var(--accent); }
+  .btn-accent{ background:var(--accent); color:#fff; }
+  [data-theme="dark"] .btn-accent{ background:var(--accent); color:#0C1410; }
+  .btn-ghost{ background:transparent; border:1px solid var(--border); color:var(--text); }
+  .btn-ghost:hover{ border-color:var(--accent); color:var(--accent); }
+  .chip{ background:var(--accent-soft); color:var(--accent); border:1px solid var(--border); }
+  .input{ background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:10px; }
+  .input:focus{ outline:none; border-color:var(--accent); }
+  .nav-link{ color:var(--text-soft); }
+  .nav-link:hover{ color:var(--accent); }
+  .nav-link.active{ color:var(--accent); }
+
+  /* Splash */
+  #splash{ position:fixed; inset:0; z-index:9999; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; transition:opacity .6s ease; }
+  #splash.hide{ opacity:0; pointer-events:none; }
+  .logo-spin{ animation: spin 2.4s ease-in-out infinite; }
+  @keyframes spin{ 0%{transform:rotate(0) scale(1)} 50%{transform:rotate(180deg) scale(1.12)} 100%{transform:rotate(360deg) scale(1)} }
+  .pulse-ring{ animation: ring 1.8s ease-out infinite; }
+  @keyframes ring{ 0%{transform:scale(.8);opacity:.7} 100%{transform:scale(2.2);opacity:0} }
+  .fade-up{ animation: fadeUp .7s ease both; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:translateY(0)} }
+  .fade-in{ animation: fadeIn .6s ease both; }
+  @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+
+  /* Leaflet theme tweaks */
+  .leaflet-container{ background:var(--card-2); border-radius:14px; font-family:var(--font); }
+  .leaflet-popup-content-wrapper{ background:var(--card); color:var(--text); border:1px solid var(--border); }
+  .leaflet-popup-tip{ background:var(--card); }
+  .leaflet-bar a{ background:var(--card); color:var(--text); border-color:var(--border); }
+  .leaflet-bar a:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .scrollbar::-webkit-scrollbar{ width:8px; height:8px; }
+  .scrollbar::-webkit-scrollbar-thumb{ background:var(--border); border-radius:8px; }
+  .page{ display:none; }
+  .page.active{ display:block; animation: fadeIn .45s ease both; }
+
+  .seg{ background:var(--card-2); border:1px solid var(--border); }
+  .seg button.active{ background:var(--accent); color:#fff; }
+  [data-theme="dark"] .seg button.active{ color:#0C1410; }
+
+  .risk-crit{ background:color-mix(in srgb, var(--risk-crit) 16%, transparent); color:var(--risk-crit); border:1px solid color-mix(in srgb, var(--risk-crit) 40%, transparent); }
+  .risk-imp{ background:color-mix(in srgb, var(--risk-imp) 16%, transparent); color:var(--risk-imp); border:1px solid color-mix(in srgb, var(--risk-imp) 40%, transparent); }
+  .risk-low{ background:color-mix(in srgb, var(--risk-low) 16%, transparent); color:var(--risk-low); border:1px solid color-mix(in srgb, var(--risk-low) 40%, transparent); }
+
+  .grad-hero{
+    background:
+      radial-gradient(1200px 500px at 80% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%),
+      radial-gradient(900px 500px at 0% 110%, color-mix(in srgb, var(--accent-2) 18%, transparent), transparent 60%),
+      var(--bg);
+  }
+  .logo-mark{ filter: drop-shadow(0 2px 10px color-mix(in srgb, var(--accent) 35%, transparent)); }
+</style>
+</head>
+<body>
+
+<!-- ============ SPLASH ============ -->
+<div id="splash">
+  <div class="relative flex items-center justify-center" style="width:140px;height:140px;">
+    <div class="absolute inset-0 rounded-full pulse-ring" style="border:3px solid var(--accent)"></div>
+    <img src="https://media.base44.com/images/public/6ab96399ebe59991e645eb2f/52e35e9a8_generated_image.png" alt="HTF" class="logo-mark logo-spin" style="width:96px;height:96px;object-fit:contain;" />
+  </div>
+  <h1 class="mt-8 text-3xl font-head" style="letter-spacing:.5px;">Hydro Torrentia Foresight AI</h1>
+  <p class="mt-2 text-muted">Foresee the flood. Save the response.</p>
+  <div class="mt-6 w-56 h-1 rounded-full overflow-hidden" style="background:var(--border)">
+    <div id="splashBar" style="height:100%;width:0%;background:var(--accent);transition:width .2s ease;"></div>
+  </div>
+</div>
+
+<!-- ============ NAVBAR ============ -->
+<nav id="navbar" class="sticky top-0 z-[1000] backdrop-blur" style="background:color-mix(in srgb, var(--bg) 82%, transparent); border-bottom:1px solid var(--border);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <div class="flex items-center justify-between h-16">
+      <button onclick="nav('landing')" class="flex items-center gap-2.5">
+        <img src="https://media.base44.com/images/public/6ab96399ebe59991e645eb2f/52e35e9a8_generated_image.png" class="logo-mark" style="width:34px;height:34px;object-fit:contain;" alt="HTF logo" />
+        <span class="font-head text-xl font-semibold">HTF <span class="text-muted text-sm font-normal hidden sm:inline">· Hydro Torrentia Foresight</span></span>
+      </button>
+
+      <div class="hidden lg:flex items-center gap-1" id="navLinks"></div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="toggleTheme()" id="themeBtn" class="btn-ghost rounded-full w-9 h-9 flex items-center justify-center" title="Toggle theme">🌙</button>
+        <button onclick="nav('auth')" id="authBtn" class="btn-accent px-4 py-1.5 rounded-full text-sm hidden">Login</button>
+        <button onclick="nav('auth')" id="dashboardBtn" class="btn-ghost px-4 py-1.5 rounded-full text-sm hidden">Dashboard</button>
+        <button id="logoutBtn" onclick="doLogout()" class="btn-ghost px-4 py-1.5 rounded-full text-sm hidden">Logout</button>
+        <button onclick="toggleMobileNav()" class="lg:hidden btn-ghost rounded-full w-9 h-9 flex items-center justify-center">☰</button>
+      </div>
+    </div>
+    <div id="mobileNav" class="lg:hidden hidden pb-3 flex-col gap-1" style="display:none;"></div>
+  </div>
+</nav>
+
+<!-- ============ APP ROOT ============ -->
+<main id="app" class="max-w-7xl mx-auto px-4 sm:px-6 py-6"></main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="mt-10 border-t" style="border-color:var(--border)">
+  <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2.5">
+      <img src="https://media.base44.com/images/public/6ab96399ebe59991e645eb2f/52e35e9a8_generated_image.png" class="logo-mark" style="width:26px;height:26px;object-fit:contain;" alt="HTF" />
+      <span class="font-head">Hydro Torrentia Foresight AI</span>
+    </div>
+    <p class="text-muted text-sm">Smart India Hackathon 2026 · Problem Statement 26161 · Prototype V1</p>
+  </div>
+</footer>
+
+<!-- =========================== DATA & ENGINE =========================== -->
+<script>
+/* ---------------- MOCK DATA ---------------- */
+const LOGO = "https://media.base44.com/images/public/6ab96399ebe59991e645eb2f/52e35e9a8_generated_image.png";
+
+const DAMS = [
+  { id:"tehri", name:"Tehri Dam", river:"Bhagirathi", state:"Uttarakhand", lat:30.376, lng:78.480, height:260, capacity:3.54, year:2006, villages:"~76 downstream" },
+  { id:"bhakra", name:"Bhakra Dam", river:"Sutlej", state:"Himachal Pradesh", lat:31.410, lng:76.430, height:226, capacity:9.34, year:1963, villages:"~64 downstream" },
+  { id:"hirakud", name:"Hirakud Dam", river:"Mahanadi", state:"Odisha", lat:21.550, lng:83.750, height:60, capacity:5.82, year:1957, villages:"~120 downstream" },
+  { id:"idukki", name:"Idukki Dam", river:"Periyar", state:"Kerala", lat:9.850, lng:76.970, height:169, capacity:1.99, year:1973, villages:"~42 downstream" },
+  { id:"sardar", name:"Sardar Sarovar Dam", river:"Narmada", state:"Gujarat", lat:21.830, lng:73.750, height:163, capacity:9.51, year:2017, villages:"~88 downstream" },
+  { id:"risi", name:"Rishiganga (ref. 2021 event)", river:"Rishiganga", state:"Uttarakhand", lat:30.370, lng:79.640, height:0, capacity:0.012, year:2021, villages:"~14 downstream" }
+];
+
+/* villages / infra per dam — relative offsets (lat,lng) downstream + elevation (m) + population + type */
+const VILLAGES = {
+  tehri:[
+    {n:"Ghansali",dl:-0.040,dd:0.020,e:640,p:3200,t:"settlement"},
+    {n:"Tilwara",dl:-0.090,dd:0.030,e:590,p:2100,t:"settlement"},
+    {n:"Devprayag",dl:-0.160,dd:0.045,e:472,p:5400,t:"settlement"},
+    {n:"Kirtinagar",dl:-0.210,dd:0.060,e:460,p:1800,t:"settlement"},
+    {n:"Srinagar",dl:-0.300,dd:0.080,e:540,p:4200,t:"settlement"},
+    {n:"Rudraprayag",dl:-0.420,dd:0.110,e:610,p:3600,t:"settlement"},
+    {n:"GVM Hospital",dl:-0.150,dd:0.040,e:470,p:0,t:"hospital"},
+    {n:"Devprayag Bridge",dl:-0.162,dd:0.046,e:470,p:0,t:"bridge"},
+    {n:"Tilwara School",dl:-0.092,dd:0.032,e:590,p:0,t:"school"},
+    {n:"NH-34 Junction",dl:-0.260,dd:0.070,e:530,p:0,t:"road"},
+    {n:"Safe Zone · Pauri Ridge",dl:-0.520,dd:0.180,e:1180,p:9000,t:"safezone"},
+    {n:"Safe Zone · Khirsu Hill",dl:-0.480,dd:0.220,e:1320,p:4200,t:"safezone"}
+  ],
+  bhakra:[
+    {n:"Nangal",dl:0.020,dd:-0.030,e:350,p:6200,t:"settlement"},
+    {n:"Una Town",dl:0.060,dd:-0.050,e:380,p:8400,t:"settlement"},
+    {n:"Bilaspur",dl:0.090,dd:-0.020,e:540,p:12000,t:"settlement"},
+    {n:"Kiratpur",dl:0.130,dd:-0.010,e:520,p:3400,t:"settlement"},
+    {n:"Rupnagar",dl:0.160,dd:0.000,e:500,p:9800,t:"settlement"},
+    {n:"Nangal Bridge",dl:0.022,dd:-0.032,e:350,p:0,t:"bridge"},
+    {n:"Nangal Civil Hospital",dl:0.024,dd:-0.028,e:352,p:0,t:"hospital"},
+    {n:"Una Govt School",dl:0.062,dd:-0.052,e:382,p:0,t:"school"},
+    {n:"NH-205 Junction",dl:0.110,dd:-0.015,e:530,p:0,t:"road"},
+    {n:"Safe Zone · Anandpur Sahib Ridge",dl:0.200,dd:0.030,e:760,p:15000,t:"safezone"},
+    {n:"Safe Zone · Naina Devi Hill",dl:0.080,dd:-0.060,e:920,p:5000,t:"safezone"}
+  ],
+  hirakud:[
+    {n:"Burla",dl:-0.020,dd:0.030,e:180,p:14000,t:"settlement"},
+    {n:"Sambalpur",dl:-0.030,dd:0.060,e:170,p:180000,t:"settlement"},
+    {n:"Hirakud Town",dl:-0.010,dd:0.020,e:175,p:30000,t:"settlement"},
+    {n:"Bargarh",dl:-0.020,dd:0.100,e:190,p:90000,t:"settlement"},
+    {n:"Sambalpur Bridge",dl:-0.032,dd:0.062,e:170,p:0,t:"bridge"},
+    {n:"VSS Medical College",dl:-0.022,dd:0.034,e:180,p:0,t:"hospital"},
+    {n:"Burla High School",dl:-0.022,dd:0.032,e:180,p:0,t:"school"},
+    {n:"NH-53 Junction",dl:-0.025,dd:0.080,e:185,p:0,t:"road"},
+    {n:"Safe Zone · Barapahad Hills",dl:-0.060,dd:0.040,e:480,p:22000,t:"safezone"},
+    {n:"Safe Zone · Gandhamardan",dl:-0.040,dd:0.140,e:700,p:8000,t:"safezone"}
+  ],
+  idukki:[
+    {n:"Cheruthoni",dl:-0.010,dd:0.020,e:120,p:8000,t:"settlement"},
+    {n:"Painavu",dl:-0.020,dd:0.030,e:950,p:4500,t:"settlement"},
+    {n:"Kattappana",dl:-0.030,dd:0.040,e:900,p:42000,t:"settlement"},
+    {n:"Erattayar",dl:-0.015,dd:0.025,e:300,p:3200,t:"settlement"},
+    {n:"Idukki Bridge",dl:-0.012,dd:0.022,e:120,p:0,t:"bridge"},
+    {n:"Kattappana Taluk Hospital",dl:-0.031,dd:0.041,e:900,p:0,t:"hospital"},
+    {n:"Painavu School",dl:-0.021,dd:0.031,e:950,p:0,t:"school"},
+    {n:"Munnar Road Junction",dl:-0.040,dd:0.010,e:1500,p:0,t:"road"},
+    {n:"Safe Zone · Munnar Ridge",dl:-0.060,dd:-0.010,e:1600,p:12000,t:"safezone"},
+    {n:"Safe Zone · Vagamon Plateau",dl:-0.080,dd:0.060,e:1100,p:6000,t:"safezone"}
+  ],
+  sardar:[
+    {n:"Kevadia",dl:0.010,dd:-0.020,e:90,p:5200,t:"settlement"},
+    {n:"Rajpipla",dl:0.020,dd:-0.040,e:80,p:26000,t:"settlement"},
+    {n:"Bharuch",dl:0.040,dd:-0.080,e:15,p:170000,t:"settlement"},
+    {n:"Jhagadia",dl:0.030,dd:-0.060,e:30,p:38000,t:"settlement"},
+    {n:"Sardar Bridge",dl:0.012,dd:-0.022,e:90,p:0,t:"bridge"},
+    {n:"Bharuch Civil Hospital",dl:0.041,dd:-0.082,e:16,p:0,t:"hospital"},
+    {n:"Rajpipla School",dl:0.021,dd:-0.042,e:80,p:0,t:"school"},
+    {n:"NH-48 Junction",dl:0.045,dd:-0.090,e:14,p:0,t:"road"},
+    {n:"Safe Zone · Pavagadh Hills",dl:0.080,dd:0.020,e:800,p:14000,t:"safezone"},
+    {n:"Safe Zone · Saputara Plateau",dl:-0.020,dd:-0.020,e:875,p:7000,t:"safezone"}
+  ],
+  risi:[
+    {n:"Rainey Village",dl:-0.012,dd:0.010,e:2100,p:280,t:"settlement"},
+    {n:"Tapovan",dl:-0.020,dd:0.014,e:1900,p:1200,t:"settlement"},
+    {n:"Joshimath",dl:-0.040,dd:0.020,e:1875,p:16000,t:"settlement"},
+    {n:"Rishiganga Bridge",dl:-0.014,dd:0.012,e:2050,p:0,t:"bridge"},
+    {n:"Tapovan Project Site",dl:-0.022,dd:0.015,e:1880,p:0,t:"road"},
+    {n:"Joshimath PHC",dl:-0.041,dd:0.021,e:1875,p:0,t:"hospital"},
+    {n:"Safe Zone · Auli Ridge",dl:-0.060,dd:0.010,e:2800,p:4000,t:"safezone"}
+  ]
+};
+
+/* ---------------- ENGINE ---------------- */
+const SEVERITY = { small:{floodR:6000, flow:3.0, depthK:0.6, conf:78, label:"Small"}, medium:{floodR:11000, flow:5.0, depthK:1.0, conf:82, label:"Medium"}, severe:{floodR:18000, flow:8.0, depthK:1.5, conf:86, label:"Severe"} };
+const DURATIONS = [6,12,24];
+
+function haversine(a,b){
+  const R=6371000, toR=x=>x*Math.PI/180;
+  const dLat=toR(b.lat-a.lat), dLng=toR(b.lng-a.lng);
+  const h=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+
+function getVillages(damId){ return (VILLAGES[damId]||[]).map(v=>({...v, lat:DAMS.find(d=>d.id===damId).lat+v.dl, lng:DAMS.find(d=>d.id===damId).lng+v.dd})); }
+
+/* Run a simulation for a dam + scenario */
+function runSimulation(damId, scenario){
+  const dam = DAMS.find(d=>d.id===damId);
+  const sev = SEVERITY[scenario.severity];
+  const villages = getVillages(damId);
+  const head = scenario.head || (dam.height||120);
+  const radius = sev.floodR * (0.6 + head/400); // m
+  const results = [];
+  let maxDist=0;
+
+  villages.forEach(v=>{
+    const dist = haversine({lat:dam.lat,lng:dam.lng},{lat:v.lat,lng:v.lng});
+    maxDist=Math.max(maxDist,dist);
+    // elevation-aware: lower elevation downstream => more floodable
+    const damE = dam.height ? 600 : 2200;
+    const eDrop = Math.max(0,(damE - v.e));
+    const elevFactor = Math.min(1.2, 0.5 + eDrop/600);
+    const inFlood = dist <= radius * elevFactor && v.t!=="safezone";
+    const depth = inFlood ? Math.max(0.2, sev.depthK * head/100 * (1 - dist/(radius*elevFactor)) ) : 0;
+    const arrivalMin = inFlood ? (dist / (sev.flow*60)) : null; // minutes
+    results.push({ ...v, dist:Math.round(dist), inFlood, depth:+depth.toFixed(1), arrivalMin: arrivalMin? +arrivalMin.toFixed(0):null, elevFactor:+elevFactor.toFixed(2) });
+  });
+
+  // flood polygon: teardrop downstream
+  const dirLat = villages[0]? villages[0].dl/Math.abs(villages[0].dl||0.001) : -1;
+  const dirLng = villages[0]? villages[0].dd/Math.abs(villages[0].dd||0.001) : 1;
+  const poly = [];
+  const steps=28;
+  for(let i=0;i<=steps;i++){
+    const t=i/steps;
+    const ang = Math.PI*2*t;
+    const r = radius/111000 * (0.55 + 0.45*Math.sin(ang*0.5+0.3)); // irregular
+    const dx = Math.cos(ang)*r*0.7;
+    const dy = Math.sin(ang)*r*1.25;
+    poly.push([ dam.lat + dy*dirLat*-1 + 0.0, dam.lng + dx*dirLng + 0.0 ]);
+  }
+  // shift polygon downstream
+  const shifted = poly.map(p=>[ p[0] + dirLat*0.04, p[1] + dirLng*0.05 ]);
+
+  const affected = results.filter(r=>r.inFlood);
+  const pop = affected.reduce((s,r)=>s+(r.p||0),0);
+  const villagesAff = affected.filter(r=>r.t==="settlement").length;
+  const floodedArea = Math.PI * Math.pow(radius/1000,2) * 0.62; // km2 approx
+  const critCount = affected.filter(r=>["hospital","bridge","road"].includes(r.t) || (r.depth>3) || (r.arrivalMin!==null&&r.arrivalMin<30)).length;
+  const riskLevel = critCount>=4 ? "CRITICAL" : critCount>=2 ? "HIGH" : critCount>=1 ? "MODERATE" : (villagesAff>0?"LOW":"MINIMAL");
+
+  return { dam, scenario, sev, radius, head, results, polygon:shifted, affected, pop, villagesAff, floodedArea:+floodedArea.toFixed(1), riskLevel, confidence:sev.conf, maxDist };
+}
+
+function riskTier(r){
+  if(!r.inFlood) return "none";
+  if(["hospital","bridge"].includes(r.t)) return "Critical";
+  if(r.t==="road") return "Critical";
+  if(r.depth>3 || (r.arrivalMin!==null && r.arrivalMin<30)) return "Critical";
+  if(["school"].includes(r.t)) return "Important";
+  if(r.depth>1.5 || (r.arrivalMin!==null && r.arrivalMin<60)) return "Important";
+  return "Lower";
+}
+
+function riskReasons(r){
+  const out=[];
+  if(r.depth>0) out.push(`Water depth: ${r.depth}m`);
+  if(r.arrivalMin!==null) out.push(`Arrival: ${r.arrivalMin<60? r.arrivalMin+" min": Math.floor(r.arrivalMin/60)+"h "+(r.arrivalMin%60)+"m"}`);
+  if(r.p>0) out.push(`Population: ${r.p.toLocaleString()}`);
+  if(r.t==="hospital") out.push("Hospital within flood zone");
+  if(r.t==="bridge") out.push("Bridge within flood zone");
+  if(r.t==="school") out.push("School within flood zone");
+  if(r.t==="road") out.push("Main road affected");
+  if(r.t==="settlement" && r.p>5000) out.push("Dense settlement");
+  return out;
+}
+
+function confidenceText(sim){
+  const c = sim.confidence;
+  const factors = ["assumed breach parameters","terrain roughness","simplified flow model","mock elevation grid"];
+  return { pct:c, text:`Confidence: ${c}% — based on ${factors.slice(0,2).join(" and ")}` };
+}
+
+/* ---------------- STATE ---------------- */
+let state = {
+  user: JSON.parse(localStorage.getItem("htf_user")||"null"),
+  scenario: { damId:"tehri", severity:"medium", duration:12, head:120, width:80 },
+  currentSim: null,
+  history: JSON.parse(localStorage.getItem("htf_history")||"[]")
+};
+
+function saveUser(){ localStorage.setItem("htf_user", JSON.stringify(state.user)); }
+function saveHistory(){ localStorage.setItem("htf_history", JSON.stringify(state.history.slice(0,12))); }
+
+/* ---------------- THEME ---------------- */
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute("data-theme");
+  const next = cur==="dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  document.getElementById("themeBtn").textContent = next==="dark" ? "☀️" : "🌙";
+  localStorage.setItem("htf_theme", next);
+  // re-render maps
+  setTimeout(()=>{ if(currentMap) rethemeMap(); }, 50);
+}
+(function initTheme(){
+  const t = localStorage.getItem("htf_theme") || "light";
+  document.documentElement.setAttribute("data-theme", t);
+  document.addEventListener("DOMContentLoaded",()=>{ document.getElementById("themeBtn").textContent = t==="dark" ? "☀️" : "🌙"; });
+})();
+
+/* ---------------- NAV ---------------- */
+const PAGES = [
+  {id:"landing", label:"Home"},
+  {id:"dashboard", label:"Dashboard", auth:true},
+  {id:"simulator", label:"Simulator", auth:true},
+  {id:"impact", label:"Impact Analysis", auth:true},
+  {id:"evac", label:"Evacuation", auth:true},
+  {id:"compare", label:"Compare", auth:true},
+  {id:"explain", label:"Risk Explain", auth:true},
+  {id:"reports", label:"Reports", auth:true},
+  {id:"about", label:"About / Help"}
+];
+
+function buildNav(){
+  const links = PAGES.filter(p=>!p.auth || state.user);
+  const html = links.map(p=>`<button onclick="nav('${p.id}')" data-nav="${p.id}" class="nav-link px-3 py-2 rounded-lg text-sm font-medium">${p.label}</button>`).join("");
+  document.getElementById("navLinks").innerHTML = html;
+  const mob = document.getElementById("mobileNav");
+  mob.innerHTML = links.map(p=>`<button onclick="nav('${p.id}');toggleMobileNav()" data-navm="${p.id}" class="nav-link w-full text-left px-3 py-2.5 rounded-lg text-sm">${p.label}</button>`).join("");
+  // auth buttons
+  document.getElementById("authBtn").classList.toggle("hidden", !!state.user);
+  document.getElementById("dashboardBtn").classList.toggle("hidden", !state.user);
+  document.getElementById("logoutBtn").classList.toggle("hidden", !state.user);
+}
+function toggleMobileNav(){
+  const m=document.getElementById("mobileNav");
+  const open = m.style.display==="flex";
+  m.style.display = open?"none":"flex";
+  m.classList.toggle("hidden", open);
+}
+function nav(page){
+  if(PAGES.find(p=>p.id===page)?.auth && !state.user){ nav("auth"); return; }
+  render(page);
+  window.scrollTo({top:0,behavior:"smooth"});
+  document.querySelectorAll("[data-nav],[data-navm]").forEach(b=>b.classList.toggle("active", b.getAttribute("data-nav")===page||b.getAttribute("data-navm")===page));
+  toggleMobileNav2();
+}
+function toggleMobileNav2(){ const m=document.getElementById("mobileNav"); m.style.display="none"; m.classList.add("hidden"); }
+
+/* ---------------- AUTH ---------------- */
+function doLogin(email,pw){
+  state.user = { email, name: email.split("@")[0], role:"authority" };
+  saveUser(); buildNav(); nav("dashboard");
+}
+function doSignup(name,email){
+  state.user = { email, name, role:"authority" };
+  saveUser(); buildNav(); nav("dashboard");
+}
+function doLogout(){ state.user=null; saveUser(); buildNav(); nav("landing"); }
+
+/* ---------------- RENDER ---------------- */
+function render(page){
+  const app = document.getElementById("app");
+  const map = {
+    landing: pageLanding, welcome: pageWelcome, auth: pageAuth, dashboard: pageDashboard,
+    simulator: pageSimulator, impact: pageImpact, evac: pageEvac, compare: pageCompare,
+    explain: pageExplain, reports: pageReports, about: pageAbout
+  };
+  app.innerHTML = (map[page]||pageLanding)();
+  // run page-specific inits
+  if(page==="dashboard") initDashboard();
+  if(page==="simulator") initSimulator();
+  if(page==="impact") initImpact();
+  if(page==="evac") initEvac();
+  if(page==="compare") initCompare();
+  if(page==="explain") initExplain();
+  if(page==="reports") initReports();
+}
+
+/* =================== PAGE: LANDING =================== */
+function pageLanding(){
+  return `
+  <section class="grad-hero rounded-3xl p-8 sm:p-14 fade-up">
+    <div class="flex flex-col lg:flex-row items-center gap-10">
+      <div class="flex-1">
+        <span class="chip inline-block px-3 py-1 rounded-full text-xs font-medium">Smart India Hackathon 2026 · PS 26161</span>
+        <h1 class="mt-4 text-4xl sm:text-5xl font-head font-semibold leading-tight">Foresee the flood.<br/><span class="text-accent">Save the response.</span></h1>
+        <p class="mt-4 text-soft text-lg max-w-xl">Hydro Torrentia Foresight AI turns a multi-hour dam-break hydrodynamic simulation into a fast, scenario-based decision-support tool — flood spread, arrival times, impact, risk tiering and evacuation routing in seconds.</p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <button onclick="nav('auth')" class="btn-accent px-6 py-3 rounded-full font-medium">Get Started</button>
+          <button onclick="nav('welcome')" class="btn-ghost px-6 py-3 rounded-full font-medium">View Demo</button>
+          <button onclick="nav('about')" class="btn-ghost px-6 py-3 rounded-full font-medium">About</button>
+        </div>
+        <p class="mt-4 text-muted text-sm">“From breach to safety — in seconds, not hours.”</p>
+      </div>
+      <div class="flex items-center justify-center">
+        <div class="relative">
+          <div class="absolute inset-0 rounded-full pulse-ring" style="border:3px solid var(--accent)"></div>
+          <img src="${LOGO}" class="logo-mark" style="width:200px;height:200px;object-fit:contain;" alt="HTF logo"/>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-12 grid md:grid-cols-3 gap-5 fade-up">
+    ${[
+      ["The Problem","Dam breaches & GLOFs cause catastrophic flash floods. Traditional tools (HEC-RAS, Delft3D, SPH) take hours and need expert operation — too slow for real-time evacuation."],
+      ["The Gap","No fast, automated, scenario-based, decision-ready system that converts dam/river data into human-understandable risk, arrival time and evacuation guidance."],
+      ["Our Solution","A web platform: select a dam, define a breach, instantly get flood map, arrival times, impact, risk tiers and evacuation routes — no expert required."]
+    ].map((c,i)=>`<div class="card p-6"><h3 class="font-head text-xl">${c[0]}</h3><p class="mt-2 text-soft text-sm">${c[1]}</p></div>`).join("")}
+  </section>
+
+  <section class="mt-12 fade-up">
+    <h2 class="font-head text-2xl mb-5">Seven core capabilities</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      ${[
+        ["01","Dynamic What-If Breach Simulator","Select a dam, configure breach width, head, severity & duration — instant flood spread."],
+        ["02","Flood Arrival-Time Intelligence","Per-location ETA — “Village A — 42 min”, not just flooded / not flooded."],
+        ["03","Multi-Layer Impact Intelligence","Overlay flood zone with villages, population, roads, bridges, schools, hospitals."],
+        ["04","Critical Infrastructure Risk Tiering","Critical / Important / Lower priority — not a flat uniform risk level."],
+        ["05","Intelligent Evacuation Routing","Safer routes to safe zones, avoiding road segments inside the flood zone."],
+        ["06","Scenario Comparison Dashboard","Small vs Medium vs Severe side-by-side: area, villages, population, risk."],
+        ["07","Explainable & Uncertainty-Aware Engine","Every risk shows WHY + a confidence indicator, not a plain label."]
+      ].map(f=>`<div class="card p-5 hover:border-accent transition"><div class="flex items-center gap-3"><span class="chip w-9 h-9 rounded-lg flex items-center justify-center font-head font-semibold">${f[0]}</span><h3 class="font-head text-lg">${f[1]}</h3></div><p class="mt-3 text-soft text-sm">${f[2]}</p></div>`).join("")}
+    </div>
+  </section>
+
+  <section class="mt-12 card p-8 text-center fade-up">
+    <img src="${LOGO}" class="logo-mark mx-auto" style="width:70px;height:70px;object-fit:contain;" alt="HTF"/>
+    <h2 class="font-head text-2xl mt-4">Turning dam-break simulations into life-saving decisions.</h2>
+    <p class="text-soft mt-2 max-w-2xl mx-auto">Built for disaster management authorities — fast, usable, decision-ready.</p>
+    <button onclick="nav('auth')" class="btn-accent mt-6 px-7 py-3 rounded-full font-medium">Start now</button>
+  </section>`;
+}
+
+/* =================== PAGE: WELCOME =================== */
+function pageWelcome(){
+  return `
+  <section class="fade-up text-center py-10">
+    <img src="${LOGO}" class="logo-mark mx-auto" style="width:90px;height:90px;object-fit:contain;" alt="HTF"/>
+    <h1 class="font-head text-3xl mt-5">Welcome to HTF</h1>
+    <p class="text-soft mt-2 max-w-2xl mx-auto">A fast, automated, scenario-based dam-break inundation intelligence platform.</p>
+  </section>
+  <section class="grid md:grid-cols-3 gap-5 fade-up">
+    ${[
+      ["Select","Pick any of 6 real Indian dams on an interactive map."],
+      ["Simulate","Configure breach parameters and run an instant flood spread."],
+      ["Decide","Get arrival times, impact, risk tiers, evacuation routes & reports."]
+    ].map((s,i)=>`<div class="card p-6"><div class="chip w-10 h-10 rounded-lg flex items-center justify-center font-head font-semibold">${i+1}</div><h3 class="font-head text-xl mt-3">${s[0]}</h3><p class="text-soft text-sm mt-1">${s[1]}</p></div>`).join("")}
+  </section>
+  <div class="text-center mt-8">
+    <button onclick="nav('auth')" class="btn-accent px-7 py-3 rounded-full font-medium">Get Started</button>
+  </div>`;
+}
+
+/* =================== PAGE: AUTH =================== */
+function pageAuth(){
+  return `
+  <section class="max-w-md mx-auto py-8 fade-up">
+    <div class="card p-8">
+      <div class="text-center">
+        <img src="${LOGO}" class="logo-mark mx-auto" style="width:60px;height:60px;object-fit:contain;" alt="HTF"/>
+        <h1 class="font-head text-2xl mt-3">Sign in to HTF</h1>
+        <p class="text-muted text-sm">Mock authentication (localStorage) — no real backend.</p>
+      </div>
+      <div class="seg rounded-xl p-1 mt-6 flex">
+        <button id="tabLogin" onclick="authTab('login')" class="flex-1 py-2 rounded-lg text-sm font-medium active">Login</button>
+        <button id="tabSignup" onclick="authTab('signup')" class="flex-1 py-2 rounded-lg text-sm font-medium">Sign Up</button>
+      </div>
+      <form id="authForm" onsubmit="return submitAuth(event)" class="mt-5 space-y-3">
+        <div id="nameWrap" class="hidden">
+          <label class="text-sm text-soft">Full name</label>
+          <input id="authName" class="input w-full px-3 py-2.5 mt-1" placeholder="Authority officer"/>
+        </div>
+        <div>
+          <label class="text-sm text-soft">Email</label>
+          <input id="authEmail" type="email" required class="input w-full px-3 py-2.5 mt-1" placeholder="you@authority.gov.in"/>
+        </div>
+        <div>
+          <label class="text-sm text-soft">Password</label>
+          <input id="authPass" type="password" required class="input w-full px-3 py-2.5 mt-1" placeholder="••••••••"/>
+        </div>
+        <button class="btn-accent w-full py-2.5 rounded-lg font-medium mt-2">Continue</button>
+      </form>
+      <p class="text-center text-muted text-xs mt-4">By continuing you accept this is a hackathon prototype.</p>
+    </div>
+  </section>`;
+}
+let authMode="login";
+function authTab(m){ authMode=m; document.getElementById("tabLogin").classList.toggle("active",m==="login"); document.getElementById("tabSignup").classList.toggle("active",m==="signup"); document.getElementById("nameWrap").classList.toggle("hidden",m==="login"); }
+function submitAuth(e){ e.preventDefault(); const email=document.getElementById("authEmail").value; const pass=document.getElementById("authPass").value; if(authMode==="signup"){ doSignup(document.getElementById("authName").value||email.split("@")[0], email); } else { doLogin(email,pass); } return false; }
+
+/* =================== SHARED: MAP =================== */
+let currentMap=null, floodLayer=null, villageLayer=null, evacLayer=null;
+function rethemeMap(){ if(currentMap){ currentMap.invalidateSize(); } }
+
+function makeMap(containerId, damId, opts={}){
+  const dam = DAMS.find(d=>d.id===damId);
+  const map = L.map(containerId).setView([dam.lat,dam.lng], 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap", maxZoom:18}).addTo(map);
+  const damIcon = L.divIcon({html:`<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:bold;">D</div>`,className:"",iconSize:[26,26]});
+  L.marker([dam.lat,dam.lng],{icon:damIcon}).addTo(map).bindPopup(`<b>${dam.name}</b><br/>${dam.river}, ${dam.state}`);
+  return map;
+}
+
+function drawFlood(map, sim){
+  if(floodLayer) map.removeLayer(floodLayer);
+  floodLayer = L.polygon(sim.polygon,{color: getCss("--flood"),weight:2,fillColor:getCss("--flood"),fillOpacity:0.28}).addTo(map);
+  map.fitBounds(floodLayer.getBounds(),{padding:[40,40]});
+}
+function drawVillages(map, sim){
+  if(villageLayer) map.removeLayer(villageLayer);
+  villageLayer = L.layerGroup().addTo(map);
+  sim.results.forEach(v=>{
+    if(v.t==="safezone") return;
+    const tier = riskTier(v);
+    const col = tier==="Critical"?getCss("--risk-crit"):tier==="Important"?getCss("--risk-imp"):tier==="Lower"?getCss("--risk-low"):getCss("--muted");
+    const icon = {hospital:"🏥",bridge:"🌉",school:"🏫",road:"🛣️",settlement:"📍"}[v.t]||"📍";
+    const m = L.divIcon({html:`<div style="width:24px;height:24px;border-radius:50%;background:${col};border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;">${icon}</div>`,className:"",iconSize:[24,24]});
+    const popup = v.inFlood ? `<b>${v.n}</b><br/>Risk: ${tier}<br/>Depth: ${v.depth}m<br/>Arrival: ${v.arrivalMin===null?"—":(v.arrivalMin<60?v.arrivalMin+" min":Math.floor(v.arrivalMin/60)+"h "+(v.arrivalMin%60)+"m")}` : `<b>${v.n}</b><br/>Outside flood zone`;
+    L.marker([v.lat,v.lng],{icon:m}).bindPopup(popup).addTo(villageLayer);
+  });
+}
+function getCss(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+/* =================== PAGE: DASHBOARD =================== */
+function pageDashboard(){
+  const s = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  state.currentSim = s;
+  return `
+  <div class="fade-up">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div class="flex items-center gap-3">
+        <img src="${LOGO}" class="logo-mark" style="width:40px;height:40px;object-fit:contain;" alt="HTF"/>
+        <div><h1 class="font-head text-2xl">Dashboard</h1><p class="text-muted text-sm">Welcome, ${state.user?.name||"officer"}</p></div>
+      </div>
+      <div class="flex gap-2">
+        <select id="dashDam" onchange="state.scenario.damId=this.value; state.currentSim=null; nav('dashboard')" class="input px-3 py-2 text-sm">
+          ${DAMS.map(d=>`<option value="${d.id}" ${d.id===state.scenario.damId?"selected":""}>${d.name} · ${d.river}</option>`).join("")}
+        </select>
+        <button onclick="nav('simulator')" class="btn-accent px-4 py-2 rounded-lg text-sm">Open Simulator</button>
+      </div>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+      ${[
+        ["Villages at risk", s.villagesAff, "settlement"],
+        ["Population affected", s.pop.toLocaleString(), "people"],
+        ["Flooded area", s.floodedArea+" km²", "area"],
+        ["Risk level", s.riskLevel, "risk"]
+      ].map(c=>`<div class="card p-5"><p class="text-muted text-sm">${c[0]}</p><p class="font-head text-2xl mt-1 ${c[3]==='risk'?'text-accent':''}">${c[1]}</p><p class="text-muted text-xs mt-1">${c[2]}</p></div>`).join("")}
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-5">
+      <div class="lg:col-span-2 card p-3">
+        <div id="dashMap" style="height:420px;border-radius:14px;"></div>
+      </div>
+      <div class="card p-5">
+        <h3 class="font-head text-lg">Quick scenario</h3>
+        <label class="text-sm text-soft mt-3 block">Severity</label>
+        <div class="seg rounded-lg p-1 flex mt-1">
+          ${["small","medium","severe"].map(sv=>`<button onclick="state.scenario.severity='${sv}';state.currentSim=null;nav('dashboard')" class="flex-1 py-1.5 rounded-md text-sm capitalize ${state.scenario.severity===sv?'active':''}">${sv}</button>`).join("")}
+        </div>
+        <label class="text-sm text-soft mt-3 block">Duration: ${state.scenario.duration}h</label>
+        <input type="range" min="6" max="24" step="6" value="${state.scenario.duration}" oninput="state.scenario.duration=+this.value;this.previousElementSibling.textContent='Duration: '+this.value+'h'" class="w-full mt-1"/>
+        <label class="text-sm text-soft mt-3 block">Water head: ${state.scenario.head}m</label>
+        <input type="range" min="40" max="260" step="20" value="${state.scenario.head}" oninput="state.scenario.head=+this.value;this.previousElementSibling.textContent='Water head: '+this.value+'m'" class="w-full mt-1"/>
+        <button onclick="state.currentSim=null;nav('dashboard')" class="btn-accent w-full mt-4 py-2.5 rounded-lg">Re-run simulation</button>
+        <div class="mt-5 space-y-2">
+          ${[["simulator","Scenario Simulator"],["impact","Impact Analysis"],["evac","Evacuation Routing"],["compare","Compare Scenarios"],["explain","Risk Explain"],["reports","Reports & Export"]].map(l=>`<button onclick="nav('${l[0]}')" class="btn-ghost w-full px-3 py-2 rounded-lg text-sm text-left flex items-center justify-between">${l[1]} <span>→</span></button>`).join("")}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function initDashboard(){
+  currentMap = makeMap("dashMap", state.scenario.damId);
+  const sim = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  state.currentSim = sim;
+  drawFlood(currentMap, sim);
+  drawVillages(currentMap, sim);
+  // push history
+  pushHistory(sim);
+}
+function pushHistory(sim){
+  const entry = { dam:sim.dam.name, severity:sim.scenario.severity, duration:sim.scenario.duration, villagesAff:sim.villagesAff, pop:sim.pop, risk:sim.riskLevel, ts:Date.now() };
+  state.history.unshift(entry); saveHistory();
+}
+
+/* =================== PAGE: SIMULATOR =================== */
+function pageSimulator(){
+  return `
+  <div class="fade-up">
+    <div class="flex items-center gap-3 mb-5">
+      <img src="${LOGO}" class="logo-mark" style="width:36px;height:36px;object-fit:contain;" alt="HTF"/>
+      <h1 class="font-head text-2xl">Scenario Simulator</h1>
+    </div>
+    <div class="grid lg:grid-cols-3 gap-5">
+      <div class="card p-5 space-y-4">
+        <h3 class="font-head text-lg">Breach parameters</h3>
+        <div>
+          <label class="text-sm text-soft">Dam</label>
+          <select id="simDam" class="input w-full px-3 py-2.5 mt-1">
+            ${DAMS.map(d=>`<option value="${d.id}" ${d.id===state.scenario.damId?"selected":""}>${d.name} · ${d.river}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label class="text-sm text-soft">Breach severity</label>
+          <div class="seg rounded-lg p-1 flex mt-1" id="sevSeg">
+            ${["small","medium","severe"].map(sv=>`<button data-sv="${sv}" onclick="setSev('${sv}')" class="flex-1 py-1.5 rounded-md text-sm capitalize ${state.scenario.severity===sv?'active':''}">${sv}</button>`).join("")}
+          </div>
+        </div>
+        <div>
+          <label class="text-sm text-soft">Breach width: <span id="wLabel">${state.scenario.width}m</span></label>
+          <input id="simWidth" type="range" min="20" max="200" step="10" value="${state.scenario.width}" oninput="document.getElementById('wLabel').textContent=this.value+'m'" class="w-full mt-1"/>
+        </div>
+        <div>
+          <label class="text-sm text-soft">Water head: <span id="hLabel">${state.scenario.head}m</span></label>
+          <input id="simHead" type="range" min="40" max="260" step="20" value="${state.scenario.head}" oninput="document.getElementById('hLabel').textContent=this.value+'m'" class="w-full mt-1"/>
+        </div>
+        <div>
+          <label class="text-sm text-soft">Simulation duration: <span id="dLabel">${state.scenario.duration}h</span></label>
+          <div class="seg rounded-lg p-1 flex mt-1" id="durSeg">
+            ${[6,12,24].map(d=>`<button data-d="${d}" onclick="setDur(${d})" class="flex-1 py-1.5 rounded-md text-sm ${state.scenario.duration===d?'active':''}">${d}h</button>`).join("")}
+          </div>
+        </div>
+        <button onclick="runSim()" class="btn-accent w-full py-2.5 rounded-lg font-medium">Run simulation</button>
+        <div id="simStatus" class="text-muted text-sm text-center"></div>
+      </div>
+      <div class="lg:col-span-2 card p-3">
+        <div id="simMap" style="height:460px;border-radius:14px;"></div>
+        <div id="simSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3"></div>
+      </div>
+    </div>
+  </div>`;
+}
+function setSev(sv){ state.scenario.severity=sv; document.querySelectorAll("#sevSeg button").forEach(b=>b.classList.toggle("active",b.dataset.sv===sv)); }
+function setDur(d){ state.scenario.duration=d; document.querySelectorAll("#durSeg button").forEach(b=>b.classList.toggle("active",+b.dataset.d===d)); document.getElementById("dLabel").textContent=d+"h"; }
+function runSim(){
+  state.scenario.damId = document.getElementById("simDam").value;
+  state.scenario.width = +document.getElementById("simWidth").value;
+  state.scenario.head = +document.getElementById("simHead").value;
+  const status=document.getElementById("simStatus");
+  status.textContent="Simulating flood spread…";
+  setTimeout(()=>{
+    const sim = runSimulation(state.scenario.damId, state.scenario);
+    state.currentSim = sim;
+    if(currentMap){ currentMap.remove(); currentMap=null; }
+    currentMap = makeMap("simMap", state.scenario.damId);
+    drawFlood(currentMap, sim);
+    drawVillages(currentMap, sim);
+    document.getElementById("simSummary").innerHTML = [
+      ["Villages",sim.villagesAff],["Population",sim.pop.toLocaleString()],["Area",sim.floodedArea+" km²"],["Risk",sim.riskLevel]
+    ].map(c=>`<div class="card-2 p-3 text-center"><p class="text-muted text-xs">${c[0]}</p><p class="font-head text-lg mt-1">${c[1]}</p></div>`).join("");
+    status.innerHTML = `✓ Simulation complete — <span class="text-accent">${confidenceText(sim).text}</span>`;
+    pushHistory(sim);
+  }, 650);
+}
+function initSimulator(){
+  currentMap = makeMap("simMap", state.scenario.damId);
+  const sim = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  state.currentSim = sim;
+  drawFlood(currentMap, sim);
+  drawVillages(currentMap, sim);
+  document.getElementById("simSummary").innerHTML = [
+    ["Villages",sim.villagesAff],["Population",sim.pop.toLocaleString()],["Area",sim.floodedArea+" km²"],["Risk",sim.riskLevel]
+  ].map(c=>`<div class="card-2 p-3 text-center"><p class="text-muted text-xs">${c[0]}</p><p class="font-head text-lg mt-1">${c[1]}</p></div>`).join("");
+}
+
+/* =================== PAGE: IMPACT =================== */
+function pageImpact(){
+  const sim = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  state.currentSim = sim;
+  const rows = sim.results.filter(r=>r.t!=="safezone").sort((a,b)=>(b.depth||0)-(a.depth||0));
+  return `
+  <div class="fade-up">
+    <div class="flex items-center gap-3 mb-5">
+      <img src="${LOGO}" class="logo-mark" style="width:36px;height:36px;object-fit:contain;" alt="HTF"/>
+      <h1 class="font-head text-2xl">Impact & Infrastructure Analysis</h1>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-5">
+      <div class="card p-3"><div id="impactMap" style="height:460px;border-radius:14px;"></div></div>
+      <div class="card p-5">
+        <h3 class="font-head text-lg mb-3">Multi-layer impact (${rows.filter(r=>r.inFlood).length} affected)</h3>
+        <div class="overflow-auto scrollbar max-h-[420px]">
+          <table class="w-full text-sm">
+            <thead class="sticky top-0" style="background:var(--card)"><tr class="text-left text-muted">
+              <th class="py-2 pr-2">Location</th><th class="py-2 pr-2">Type</th><th class="py-2 pr-2">Depth</th><th class="py-2 pr-2">Arrival</th><th class="py-2 pr-2">Tier</th>
+            </tr></thead>
+            <tbody>
+              ${rows.map(r=>{
+                const tier=riskTier(r); const tierClass=tier==="Critical"?"risk-crit":tier==="Important"?"risk-imp":"risk-low";
+                return `<tr class="border-t" style="border-color:var(--border)">
+                  <td class="py-2 pr-2">${r.n}</td>
+                  <td class="py-2 pr-2 capitalize text-soft">${r.t}</td>
+                  <td class="py-2 pr-2">${r.inFlood?r.depth+"m":"—"}</td>
+                  <td class="py-2 pr-2">${r.arrivalMin===null?"—":(r.arrivalMin<60?r.arrivalMin+"m":Math.floor(r.arrivalMin/60)+"h "+(r.arrivalMin%60)+"m")}</td>
+                  <td class="py-2 pr-2"><span class="${tierClass} px-2 py-0.5 rounded text-xs font-medium">${r.inFlood?tier:"—"}</span></td>
+                </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function initImpact(){
+  currentMap = makeMap("impactMap", state.scenario.damId);
+  const sim = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  drawFlood(currentMap, sim); drawVillages(currentMap, sim);
+}
+
+/* =================== PAGE: EVAC =================== */
+function pageEvac(){
+  const sim = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  state.currentSim = sim;
+  const atRisk = sim.results.filter(r=>r.inFlood && r.t==="settlement");
+  const safe = sim.results.filter(r=>r.t==="safezone");
+  return `
+  <div class="fade-up">
+    <div class="flex items-center gap-3 mb-5">
+      <img src="${LOGO}" class="logo-mark" style="width:36px;height:36px;object-fit:contain;" alt="HTF"/>
+      <h1 class="font-head text-2xl">Intelligent Evacuation Routing</h1>
+    </div>
+    <div class="grid lg:grid-cols-3 gap-5">
+      <div class="lg:col-span-2 card p-3"><div id="evacMap" style="height:480px;border-radius:14px;"></div></div>
+      <div class="card p-5">
+        <h3 class="font-head text-lg mb-3">Suggested routes</h3>
+        <div class="space-y-3 overflow-auto scrollbar max-h-[440px]">
+          ${atRisk.map(v=>{
+            const target = safe.reduce((best,s)=>{ const d=haversine({lat:v.lat,lng:v.lng},{lat:s.lat,lng:s.lng}); return (!best||d<best.d)?{s,d}:best; },null);
+            const distKm=(target.d/1000).toFixed(1);
+            const walkH=Math.round(target.d/80); // 80m/min walking
+            return `<div class="card-2 p-3">
+              <div class="flex justify-between"><b>${v.n}</b><span class="chip px-2 py-0.5 rounded text-xs">→ ${target.s.n}</span></div>
+              <p class="text-muted text-xs mt-1">Distance ${distKm} km · est. ${walkH<60?walkH+" min":Math.floor(walkH/60)+"h "+(walkH%60)+"m"} on foot · route avoids flood segments</p>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function initEvac(){
+  currentMap = makeMap("evacMap", state.scenario.damId);
+  const sim = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  drawFlood(currentMap, sim);
+  // draw villages + safe zones + routes
+  if(evacLayer) currentMap.removeLayer(evacLayer);
+  evacLayer = L.layerGroup().addTo(currentMap);
+  sim.results.forEach(v=>{
+    if(v.t==="safezone"){
+      const ic=L.divIcon({html:`<div style="width:28px;height:28px;border-radius:50%;background:${getCss("--safe")};border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;">✓</div>`,className:"",iconSize:[28,28]});
+      L.marker([v.lat,v.lng],{icon:ic}).bindPopup(`<b>Safe Zone</b><br/>${v.n}`).addTo(evacLayer);
+    } else if(v.inFlood && v.t==="settlement"){
+      const ic=L.divIcon({html:`<div style="width:22px;height:22px;border-radius:50%;background:${getCss("--risk-crit")};border:2px solid #fff;"></div>`,className:"",iconSize:[22,22]});
+      L.marker([v.lat,v.lng],{icon:ic}).bindPopup(`<b>At risk</b><br/>${v.n}`).addTo(evacLayer);
+    }
+  });
+  // routes (bend around flood centroid)
+  const atRisk = sim.results.filter(r=>r.inFlood && r.t==="settlement");
+  const safe = sim.results.filter(r=>r.t==="safezone");
+  atRisk.forEach(v=>{
+    const target = safe.reduce((best,s)=>{ const d=haversine({lat:v.lat,lng:v.lng},{lat:s.lat,lng:s.lng}); return (!best||d<best.d)?{s,d}:best; },null);
+    // midpoint offset to bend around flood
+    const midLat=(v.lat+target.s.lat)/2, midLng=(v.lng+target.s.lng)/2;
+    const offLat = midLat + (midLat - sim.dam.lat)*0.0008;
+    const offLng = midLng + (midLng - sim.dam.lng)*0.0008;
+    L.polyline([[v.lat,v.lng],[offLat,offLng],[target.s.lat,target.s.lng]],{color:getCss("--safe"),weight:3,dashArray:"6 8"}).addTo(evacLayer);
+  });
+}
+
+/* =================== PAGE: COMPARE =================== */
+function pageCompare(){
+  return `
+  <div class="fade-up">
+    <div class="flex items-center gap-3 mb-5">
+      <img src="${LOGO}" class="logo-mark" style="width:36px;height:36px;object-fit:contain;" alt="HTF"/>
+      <h1 class="font-head text-2xl">Scenario Comparison</h1>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-4 mb-5" id="compareCards"></div>
+    <div class="grid lg:grid-cols-2 gap-5">
+      <div class="card p-5"><h3 class="font-head text-lg mb-3">Flooded area (km²)</h3><canvas id="cmpArea" height="220"></canvas></div>
+      <div class="card p-5"><h3 class="font-head text-lg mb-3">Population affected</h3><canvas id="cmpPop" height="220"></canvas></div>
+    </div>
+    <div class="card p-5 mt-5 overflow-auto scrollbar">
+      <h3 class="font-head text-lg mb-3">Comparison table</h3>
+      <table class="w-full text-sm" id="cmpTable"></table>
+    </div>
+  </div>`;
+}
+let cmpCharts=[];
+function initCompare(){
+  cmpCharts.forEach(c=>c.destroy()); cmpCharts=[];
+  const sims = ["small","medium","severe"].map(sev=>runSimulation(state.scenario.damId,{...state.scenario,severity:sev}));
+  document.getElementById("compareCards").innerHTML = sims.map(s=>{
+    const col=s.riskLevel==="CRITICAL"?"risk-crit":s.riskLevel==="HIGH"?"risk-imp":"risk-low";
+    return `<div class="card p-5"><h3 class="font-head text-lg capitalize">${s.sev.label} breach</h3>
+      <div class="mt-3 space-y-1 text-sm">
+        <p class="flex justify-between"><span class="text-muted">Flooded area</span><b>${s.floodedArea} km²</b></p>
+        <p class="flex justify-between"><span class="text-muted">Villages</span><b>${s.villagesAff}</b></p>
+        <p class="flex justify-between"><span class="text-muted">Population</span><b>${s.pop.toLocaleString()}</b></p>
+        <p class="flex justify-between"><span class="text-muted">Confidence</span><b>${s.confidence}%</b></p>
+      </div>
+      <div class="mt-3"><span class="${col} px-2.5 py-1 rounded text-xs font-medium">${s.riskLevel}</span></div>
+    </div>`;
+  }).join("");
+  const labels=sims.map(s=>s.sev.label);
+  const accent=getCss("--accent");
+  cmpCharts.push(new Chart(document.getElementById("cmpArea"),{type:"bar",data:{labels,datasets:[{label:"km²",data:sims.map(s=>s.floodedArea),backgroundColor:accent,borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{color:getCss("--muted")},grid:{color:getCss("--border")}},x:{ticks:{color:getCss("--muted")},grid:{display:false}}}}}));
+  cmpCharts.push(new Chart(document.getElementById("cmpPop"),{type:"bar",data:{labels,datasets:[{label:"Population",data:sims.map(s=>s.pop),backgroundColor:getCss("--accent-2"),borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{color:getCss("--muted")},grid:{color:getCss("--border")}},x:{ticks:{color:getCss("--muted")},grid:{display:false}}}}}));
+  document.getElementById("cmpTable").innerHTML = `
+    <thead><tr class="text-left text-muted border-b" style="border-color:var(--border)">
+      <th class="py-2 pr-3">Metric</th>${sims.map(s=>`<th class="py-2 pr-3 capitalize">${s.sev.label}</th>`).join("")}
+    </tr></thead>
+    <tbody>
+      ${[["Flooded area (km²)",s=>s.floodedArea],["Villages affected",s=>s.villagesAff],["Population affected",s=>s.pop.toLocaleString()],["Overall risk",s=>s.riskLevel],["Confidence",s=>s.confidence+"%"]].map(r=>`<tr class="border-b" style="border-color:var(--border)"><td class="py-2 pr-3 font-medium">${r[0]}</td>${sims.map(s=>`<td class="py-2 pr-3">${r[1](s)}</td>`).join("")}</tr>`).join("")}
+    </tbody>`;
+}
+
+/* =================== PAGE: EXPLAIN =================== */
+function pageExplain(){
+  const sim = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  state.currentSim = sim;
+  const conf = confidenceText(sim);
+  const affected = sim.results.filter(r=>r.inFlood && r.t!=="safezone").sort((a,b)=>(b.depth||0)-(a.depth||0));
+  return `
+  <div class="fade-up">
+    <div class="flex items-center gap-3 mb-5">
+      <img src="${LOGO}" class="logo-mark" style="width:36px;height:36px;object-fit:contain;" alt="HTF"/>
+      <h1 class="font-head text-2xl">Explainable & Uncertainty-Aware Risk Engine</h1>
+    </div>
+    <div class="card p-5 mb-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div><h3 class="font-head text-lg">Simulation confidence</h3><p class="text-muted text-sm">${conf.text}</p></div>
+        <div class="flex items-center gap-3">
+          <div class="w-40 h-3 rounded-full overflow-hidden" style="background:var(--border)"><div style="width:${conf.pct}%;height:100%;background:var(--accent)"></div></div>
+          <b class="text-accent">${conf.pct}%</b>
+        </div>
+      </div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-4">
+      ${affected.map(r=>{
+        const tier=riskTier(r); const cls=tier==="Critical"?"risk-crit":tier==="Important"?"risk-imp":"risk-low";
+        const reasons=riskReasons(r);
+        const locConf = Math.max(60, Math.min(95, sim.confidence - Math.round(r.dist/1000)));
+        return `<div class="card p-5">
+          <div class="flex justify-between items-start">
+            <div><h3 class="font-head text-lg">${r.n}</h3><p class="text-muted text-xs capitalize">${r.t} · ${r.dist/1000} km from dam</p></div>
+            <span class="${cls} px-2.5 py-1 rounded text-xs font-medium">${tier} risk</span>
+          </div>
+          <div class="mt-3">
+            <p class="text-sm font-medium text-soft">Why this tier:</p>
+            <ul class="mt-1 space-y-1 text-sm">${reasons.map(x=>`<li class="flex gap-2"><span class="text-accent">•</span> ${x}</li>`).join("")}</ul>
+          </div>
+          <div class="mt-3 flex items-center justify-between text-xs">
+            <span class="text-muted">Location confidence</span>
+            <span class="chip px-2 py-0.5 rounded">${locConf}%</span>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+function initExplain(){}
+
+/* =================== PAGE: REPORTS =================== */
+function pageReports(){
+  const sim = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  state.currentSim = sim;
+  const conf = confidenceText(sim);
+  return `
+  <div class="fade-up">
+    <div class="flex items-center gap-3 mb-5">
+      <img src="${LOGO}" class="logo-mark" style="width:36px;height:36px;object-fit:contain;" alt="HTF"/>
+      <h1 class="font-head text-2xl">Reports & Export</h1>
+    </div>
+    <div class="grid lg:grid-cols-3 gap-5">
+      <div class="lg:col-span-2 card p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <img src="${LOGO}" class="logo-mark" style="width:40px;height:40px;object-fit:contain;" alt="HTF"/>
+          <div><h2 class="font-head text-xl">Inundation Scenario Report</h2><p class="text-muted text-sm">Generated ${new Date().toLocaleString()}</p></div>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-3 text-sm">
+          <p><b>Dam:</b> ${sim.dam.name} (${sim.dam.river}, ${sim.dam.state})</p>
+          <p><b>Scenario:</b> ${sim.sev.label} breach · ${sim.scenario.duration}h</p>
+          <p><b>Breach width:</b> ${sim.scenario.width}m · <b>Head:</b> ${sim.scenario.head}m</p>
+          <p><b>Confidence:</b> ${conf.pct}%</p>
+          <p><b>Flooded area:</b> ${sim.floodedArea} km²</p>
+          <p><b>Villages affected:</b> ${sim.villagesAff}</p>
+          <p><b>Population affected:</b> ${sim.pop.toLocaleString()}</p>
+          <p><b>Overall risk:</b> <span class="text-accent font-medium">${sim.riskLevel}</span></p>
+        </div>
+        <h3 class="font-head text-lg mt-5 mb-2">Affected locations</h3>
+        <div class="overflow-auto scrollbar max-h-64">
+          <table class="w-full text-sm"><thead><tr class="text-left text-muted border-b" style="border-color:var(--border)"><th class="py-2 pr-2">Location</th><th class="py-2 pr-2">Type</th><th class="py-2 pr-2">Depth</th><th class="py-2 pr-2">Arrival</th><th class="py-2 pr-2">Tier</th></tr></thead>
+          <tbody>${sim.results.filter(r=>r.inFlood&&r.t!=="safezone").map(r=>`<tr class="border-b" style="border-color:var(--border)"><td class="py-2 pr-2">${r.n}</td><td class="py-2 pr-2 capitalize">${r.t}</td><td class="py-2 pr-2">${r.depth}m</td><td class="py-2 pr-2">${r.arrivalMin===null?"—":(r.arrivalMin<60?r.arrivalMin+"m":Math.floor(r.arrivalMin/60)+"h "+(r.arrivalMin%60)+"m")}</td><td class="py-2 pr-2">${riskTier(r)}</td></tr>`).join("")}</tbody></table>
+        </div>
+      </div>
+      <div class="card p-5">
+        <h3 class="font-head text-lg mb-3">Export (demo)</h3>
+        <div class="space-y-2">
+          <button onclick="demoExport('PDF Report')" class="btn-ghost w-full px-3 py-2.5 rounded-lg text-sm text-left flex justify-between">Download PDF Report <span>⤓</span></button>
+          <button onclick="demoExport('Shapefile (.shp)')" class="btn-ghost w-full px-3 py-2.5 rounded-lg text-sm text-left flex justify-between">Export as .shp <span>⤓</span></button>
+          <button onclick="demoExport('KML (.kml)')" class="btn-ghost w-full px-3 py-2.5 rounded-lg text-sm text-left flex justify-between">Export as .kml <span>⤓</span></button>
+          <button onclick="demoExport('CSV summary')" class="btn-ghost w-full px-3 py-2.5 rounded-lg text-sm text-left flex justify-between">Export CSV summary <span>⤓</span></button>
+        </div>
+        <h3 class="font-head text-lg mt-5 mb-2">Recent scenarios</h3>
+        <div class="space-y-2 max-h-48 overflow-auto scrollbar">
+          ${state.history.length?state.history.map(h=>`<div class="card-2 p-2.5 text-xs"><b>${h.dam}</b> · ${h.severity} · ${h.duration}h<br/><span class="text-muted">${h.villagesAff} villages · ${h.pop.toLocaleString()} ppl · ${h.risk}</span></div>`).join(""):'<p class="text-muted text-sm">No scenarios yet.</p>'}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function initReports(){}
+function demoExport(name){
+  const sim = state.currentSim || runSimulation(state.scenario.damId, state.scenario);
+  // generate a simple text report blob for download as a real file
+  const lines = [
+    "HTF Inundation Scenario Report",
+    "============================",
+    `Dam: ${sim.dam.name} (${sim.dam.river}, ${sim.dam.state})`,
+    `Scenario: ${sim.sev.label} breach, ${sim.scenario.duration}h, width ${sim.scenario.width}m, head ${sim.scenario.head}m`,
+    `Confidence: ${confidenceText(sim).pct}%`,
+    `Flooded area: ${sim.floodedArea} km²`,
+    `Villages affected: ${sim.villagesAff}`,
+    `Population affected: ${sim.pop}`,
+    `Overall risk: ${sim.riskLevel}`,
+    "",
+    "Affected locations:",
+    "Location | Type | Depth(m) | Arrival(min) | Tier"
+  ];
+  sim.results.filter(r=>r.inFlood&&r.t!=="safezone").forEach(r=>lines.push(`${r.n} | ${r.t} | ${r.depth} | ${r.arrivalMin} | ${riskTier(r)}`));
+  const blob = new Blob([lines.join("\n")],{type:"text/plain"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download = name.includes("PDF")?"HTF_Report.txt":("HTF_"+name.replace(/[^a-z0-9]/gi,"")+".txt");
+  a.click();
+  toast(`Exported ${name} (demo file generated)`);
+}
+
+/* =================== PAGE: ABOUT =================== */
+function pageAbout(){
+  return `
+  <div class="fade-up max-w-4xl mx-auto">
+    <div class="flex items-center gap-3 mb-5">
+      <img src="${LOGO}" class="logo-mark" style="width:40px;height:40px;object-fit:contain;" alt="HTF"/>
+      <h1 class="font-head text-2xl">About / Help</h1>
+    </div>
+    <div class="card p-6 space-y-4 text-soft">
+      <h3 class="font-head text-lg text-accent">Project</h3>
+      <p><b>Hydro Torrentia Foresight AI (HTF)</b> is a web-based Dam-Break Inundation Intelligence Platform for Smart India Hackathon 2026, Problem Statement 26161: “Dam Break Inundation Modelling Using Hydrodynamic Modelling of any River.”</p>
+      <h3 class="font-head text-lg text-accent">Problem</h3>
+      <p>Dam breaches, landslide lake outbursts and sudden river blockages (Rishiganga 2021, Sikkim GLOF) cause catastrophic flash floods. Traditional hydrodynamic tools (HEC-RAS, Delft3D, SPH) take hours, need expert operation, and cannot support real-time evacuation decisions.</p>
+      <h3 class="font-head text-lg text-accent">Solution</h3>
+      <p>HTF lets any user select a dam, define a breach scenario, and instantly receive a flood spread map, arrival-time predictions, population/infrastructure impact, risk classification and evacuation routing — turning a multi-hour simulation into a fast, usable decision-support tool.</p>
+      <h3 class="font-head text-lg text-accent">How to use</h3>
+      <ol class="list-decimal pl-5 space-y-1">
+        <li>Sign in (mock auth) and open the <b>Dashboard</b>.</li>
+        <li>Pick a dam and set severity / duration / head.</li>
+        <li>Open the <b>Simulator</b> to run a flood spread.</li>
+        <li>Review <b>Impact</b>, <b>Evacuation</b>, <b>Compare</b>, <b>Risk Explain</b> and <b>Reports</b>.</li>
+      </ol>
+      <h3 class="font-head text-lg text-accent">Note</h3>
+      <p class="text-muted text-sm">This is a V1 hackathon prototype. Flood spread, arrival time and risk scoring use a simplified distance-decay + elevation-aware stand-in algorithm with embedded mock datasets — not a full physics-based hydrodynamic model. All data is stored locally in your browser.</p>
+    </div>
+  </div>`;
+}
+
+/* ---------------- TOAST ---------------- */
+function toast(msg){
+  let t=document.getElementById("htfToast");
+  if(!t){ t=document.createElement("div"); t.id="htfToast"; t.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;z-index:9998;box-shadow:0 6px 20px rgba(0,0,0,.2);opacity:0;transition:opacity .3s"; if(getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()==="#8FE0A8") t.style.color="#0C1410"; document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity="1";
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.opacity="0",2600);
+}
+
+/* ---------------- BOOT ---------------- */
+function boot(){
+  buildNav();
+  // splash
+  let p=0; const bar=document.getElementById("splashBar");
+  const iv=setInterval(()=>{ p+=Math.random()*18+6; if(p>=100){p=100; clearInterval(iv); setTimeout(()=>{ document.getElementById("splash").classList.add("hide"); setTimeout(()=>document.getElementById("splash").remove(),700); },300);} bar.style.width=p+"%"; },180);
+  // first page
+  nav(state.user?"dashboard":"landing");
+}
+boot();
+</script>
+</body>
+</html>
